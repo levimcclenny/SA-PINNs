@@ -91,7 +91,7 @@ def f_model(x, t):
         return f_u
 
 
-    def u_x_model(x, t):
+def u_x_model(x, t):
     with tf.GradientTape(persistent=True) as tape:
         tape.watch(x)
         tape.watch(t)
