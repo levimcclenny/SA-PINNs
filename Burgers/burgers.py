@@ -250,7 +250,7 @@ t_lb = tf.convert_to_tensor(X_lb[:,1:2], dtype=tf.float32)
 x_ub = tf.convert_to_tensor(X_ub[:,0:1], dtype=tf.float32)
 t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
 
-# Begin training
+# Begin training, modify 10000/10000 for varying levels of adam/L-BFGS respectively
 fit(x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights, tf_iter = 10000, newton_iter = 10000)
 
 #generate mesh to find U0-pred for the whole domain
