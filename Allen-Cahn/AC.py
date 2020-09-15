@@ -249,7 +249,7 @@ Exact_u = np.real(Exact)
 
 
 # Plot high-fidelity solution
-
+fig, ax = plt.subplots()
 ec = plt.imshow(Exact_u, interpolation='nearest', cmap='rainbow',
             extent=[0.0, 1.0, -1.0, 1.0],
             origin='lower', aspect='auto')
