@@ -71,7 +71,6 @@ def get_weights(model):
 def neural_net(layer_sizes):
     model = Sequential()
     model.add(layers.InputLayer(input_shape=(layer_sizes[0],)))
-    model.add(batchnorm())
     for width in layer_sizes[1:-1]:
         model.add(layers.Dense(
             width, activation=tf.nn.tanh,
