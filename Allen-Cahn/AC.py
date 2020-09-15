@@ -17,9 +17,8 @@ from pyDOE import lhs
 
 
 
-
-
-layer_sizes = [2, 100, 100, 100, 100, 1]
+#define size of the network
+layer_sizes = [2, 128, 128, 128, 128, 1]
 
 sizes_w = []
 sizes_b = []
@@ -28,31 +27,17 @@ for i, width in enumerate(layer_sizes):
         sizes_w.append(int(width * layer_sizes[1]))
         sizes_b.append(int(width if i != 0 else layer_sizes[1]))
 
+
+#L-BFGS weight getting and setting from https://github.com/pierremtb/PINNs-TF2.0
 def set_weights(model, w, sizes_w, sizes_b):
         for i, layer in enumerate(model.layers[0:]):
-            #print(w)
-           # print(i, layer)
             start_weights = sum(sizes_w[:i]) + sum(sizes_b[:i])
-            #print("start weights",np.shape(start_weights), start_weights)
-
             end_weights = sum(sizes_w[:i+1]) + sum(sizes_b[:i])
-            #print("end weights", np.shape(end_weights), end_weights)
-
             weights = w[start_weights:end_weights]
-            #print("weights", np.shape(weights), weights)
-
             w_div = int(sizes_w[i] / sizes_b[i])
-            #print("w_div", w_div)
-
             weights = tf.reshape(weights, [w_div, sizes_b[i]])
-            #print("weights", np.shape(weights), weights)
-
             biases = w[end_weights:end_weights + sizes_b[i]]
-            #print("biases", np.shape(biases), biases)
-
             weights_biases = [weights, biases]
-            #print("weights_biases", np.shape(weights_biases), weights_biases)
-
             layer.set_weights(weights_biases)
 
 
@@ -68,6 +53,7 @@ def get_weights(model):
         w = tf.convert_to_tensor(w)
         return w
 
+#define the neural network model
 def neural_net(layer_sizes):
     model = Sequential()
     model.add(layers.InputLayer(input_shape=(layer_sizes[0],)))
@@ -80,10 +66,13 @@ def neural_net(layer_sizes):
             kernel_initializer="glorot_normal"))
     return model
 
+#initialize the NN
 u_model = neural_net(layer_sizes)
 
+#view the NN
 u_model.summary()
 
+#define the loss
 def loss(x_f_batch, t_f_batch,
              x0, t0, u0, x_lb,
              t_lb, x_ub, t_ub, col_weights, u_weights):
@@ -94,37 +83,24 @@ def loss(x_f_batch, t_f_batch,
     u_lb_pred, u_x_lb_pred, = u_x_model(x_lb, t_lb)
     u_ub_pred, u_x_ub_pred, = u_x_model(x_ub, t_ub)
 
-
     mse_0_u = tf.reduce_mean(tf.square(u_weights*(u0 - u0_pred)))
-
 
     mse_b_u = tf.reduce_mean(tf.square(u_lb_pred - u_ub_pred)) + \
             tf.reduce_mean(tf.square(u_x_lb_pred-u_x_ub_pred))
 
-
     mse_f_u = tf.reduce_mean(tf.square(col_weights*f_u_pred))
-
-
     return  mse_0_u + mse_b_u + mse_f_u , mse_0_u, mse_b_u, mse_f_u
 
-
+#define the physics-based residual, we want this to be 0
 def f_model(x, t):
         with tf.GradientTape(persistent=True) as tape:
             tape.watch(x)
             tape.watch(t)
-
             u = u_model(tf.concat([x, t],1))
-
             u_x = tape.gradient(u, x)
-
-
         u_xx = tape.gradient(u_x, x)
-
         u_t = tape.gradient(u, t)
-
-
         del tape
-
         f_u = u_t - 0.0001*u_xx + 5.0*u**3 - 5.0*u
 
         return f_u
@@ -138,7 +114,6 @@ def u_x_model(x, t):
         u = u_model(X)
 
     u_x = tape.gradient(u, x)
-
     del tape
 
     return u, u_x
@@ -151,12 +126,14 @@ def fit(x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights, tf
     n_batches =  N_f // batch_sz
 
     start_time = time.time()
+    #create optimizer s for the network weights, collocation point mask, and initial boundary mask
     tf_optimizer = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
     tf_optimizer_coll = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
     tf_optimizer_u = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
 
     print("starting Adam training")
-    #Adam optimization
+
+    # For mini-batch (if used)
     for epoch in range(tf_iter):
         for i in range(n_batches):
 
@@ -173,7 +150,9 @@ def fit(x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights, tf
                 grads_col = tape.gradient(loss_value, col_weights)
                 grads_u = tape.gradient(loss_value, u_weights)
 
+            #Apply individual gradients
             tf_optimizer.apply_gradients(zip(grads, u_model.trainable_variables))
+            #this is where the max of the weights is applied, but incraseing the weight vector where the loss identiries the larget loss
             tf_optimizer_coll.apply_gradients(zip([-grads_col], [col_weights]))
             tf_optimizer_u.apply_gradients(zip([-grads_u], [u_weights]))
 
@@ -232,7 +211,7 @@ lb = np.array([-1.0])
 ub = np.array([1.0])
 
 N0 = 200
-N_b = 100 #25 per upper and lower boundary, so 50 total
+N_b = 100
 N_f = 20000
 
 col_weights = tf.Variable(tf.random.uniform([N_f, 1]))
