@@ -16,6 +16,46 @@ from eager_lbfgs import lbfgs, Struct
 from pyDOE import lhs
 
 
+
+
+
+layer_sizes = [2, 100, 100, 100, 100, 1]
+
+sizes_w = []
+sizes_b = []
+for i, width in enumerate(layer_sizes):
+    if i != 1:
+        sizes_w.append(int(width * layer_sizes[1]))
+        sizes_b.append(int(width if i != 0 else layer_sizes[1]))
+
+def set_weights(model, w, sizes_w, sizes_b):
+        for i, layer in enumerate(model.layers[0:]):
+            #print(w)
+           # print(i, layer)
+            start_weights = sum(sizes_w[:i]) + sum(sizes_b[:i])
+            #print("start weights",np.shape(start_weights), start_weights)
+
+            end_weights = sum(sizes_w[:i+1]) + sum(sizes_b[:i])
+            #print("end weights", np.shape(end_weights), end_weights)
+
+            weights = w[start_weights:end_weights]
+            #print("weights", np.shape(weights), weights)
+
+            w_div = int(sizes_w[i] / sizes_b[i])
+            #print("w_div", w_div)
+
+            weights = tf.reshape(weights, [w_div, sizes_b[i]])
+            #print("weights", np.shape(weights), weights)
+
+            biases = w[end_weights:end_weights + sizes_b[i]]
+            #print("biases", np.shape(biases), biases)
+
+            weights_biases = [weights, biases]
+            #print("weights_biases", np.shape(weights_biases), weights_biases)
+
+            layer.set_weights(weights_biases)
+
+
 def get_weights(model):
         w = []
         for layer in model.layers[0:]:
