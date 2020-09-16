@@ -15,9 +15,6 @@ Numerical experiments with an Allen-Cahn stiff PDE, the Self-Adaptive PINN outpe
 <sub><sub><sup>1</sup>Texas A&M Dept. of Electrical Engineering, College Station, TX</sub></sub><br>
 <sub><sub><sup>2</sup>US Army CCDC Army Research Lab, Aberdeen Proving Ground/Adelphi, MD</sub></sub><br>
 
-### Estimator Architecture
-
-
 ## Requirements
 Code was implemented in ```python 3.7``` with the following package versions:
 ```
