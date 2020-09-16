@@ -22,7 +22,7 @@ tensorflow version = 2.3
 keras version = 2.2.4
 ```
 
-and ```matplotlib 3.1.1``` was used for visualization.
+and ```matplotlib 3.1.1``` was used for visualization. It is expected that any combination of recent numpy/matplotlib will be sufficient, however issues have been experienced on tensorflow versions <2.3.0
 
 ### Virtual Environment (Optional)
 **(Mac)** To create a virtual environment to run this code, download the repository either via ```git clone``` or by clicking download at the top of github, then navigate to the top-level folder in a terminal window and execute the commands
@@ -35,7 +35,7 @@ source ./venv/bin/activate
 This will create a virtual environment named ```venv``` in that directory (first line) and drop you into it (second line). At that point you can install/uninstall package versions without effecting your overall environment. You can verify you're in the virtual environment if you see ```(venv)``` at the beginning of your terminal line. At this point you can install the exact versions of the packages listed here with the pip into the venv:
 
 ```
-pip install tensorflow==2.3 numpy==1.15.4 keras==2.2.4
+pip install tensorflow==2.3 numpy==1.17.2 keras==2.2.4
 ```
 
 run
@@ -48,7 +48,7 @@ And you should see the following output:
 Using TensorFlow backend
 tensorflow version = 2.3
 keras version = 2.2.4
-numpy version = 1.15.4
+numpy version = 1.17.2
 ```
 
 ## Data
