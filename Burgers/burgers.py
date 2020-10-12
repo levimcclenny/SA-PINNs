@@ -88,41 +88,36 @@ def loss(x_f_batch, t_f_batch,
     return  mse_0_u + mse_b_u + mse_f_u , mse_0_u, mse_f_u
 
 
-def f_model(x, t):
-    # keep track of our gradients
-        with tf.GradientTape(persistent=True) as tape:
-            tape.watch(x)
-            tape.watch(t)
+@tf.function
+def f_model(x,t):
+    u = u_model(tf.concat([x,t], 1))
+    u_x = tf.gradients(u,x)
+    u_xx = tf.gradients(u_x, x)
+    u_t = tf.gradients(u,t)
+    f_u = u_t + u*u_x - (0.01/tf.constant(math.pi))*u_xx
 
-            u = u_model(tf.concat([x, t],1))
-            u_x = tape.gradient(u, x)
-
-        u_xx = tape.gradient(u_x, x)
-        u_t = tape.gradient(u, t)
-
-        del tape
-
-        #hsq = (u**2 + v**2)
-        f_u = u_t + u*u_x - (0.01/tf.constant(math.pi))*u_xx
-        #f_v = v_t - .5*u_xx - hsq*u
-
-        return f_u
+    return f_u
 
 
 
-def u_x_model(x, t):
+@tf.function
+def u_x_model(x,t):
+    u = u_model(tf.concat([x,t],1))
+    u_x = tf.gradients(u,x)
+    return u,u_x
+
+@tf.function
+def grad(model, x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights):
     with tf.GradientTape(persistent=True) as tape:
-        tape.watch(x)
-        tape.watch(t)
-        X = tf.concat([x,t],1)
-        u = u_model(X)
+        #tape.watch(col_weights)
+        #tape.watch(u_weights)
+        loss_value, mse_0, mse_f = loss(x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights)
+        grads = tape.gradient(loss_value, u_model.trainable_variables)
+        #print(grads)
+        grads_col = tape.gradient(loss_value, col_weights)
+        grads_u = tape.gradient(loss_value, u_weights)
 
-    u_x = tape.gradient(u, x)
-
-    del tape
-
-    return u, u_x
-
+    return loss_value, mse_0, mse_f, grads, grads_col, grads_u
 
 def fit(x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights, tf_iter, newton_iter):
     # Built in support for mini-batch, set to N_f (i.e. full batch) by default
@@ -145,15 +140,12 @@ def fit(x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights, tf
             x_f_batch = x_f[i*batch_sz:(i*batch_sz + batch_sz),]
             t_f_batch = t_f[i*batch_sz:(i*batch_sz + batch_sz),]
 
-            with tf.GradientTape(persistent=True) as tape:
-                loss_value, mse_0, mse_f = loss(x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights)
-                grads = tape.gradient(loss_value, u_model.trainable_variables)
-                grads_col = tape.gradient(loss_value, col_weights)
-                grads_u = tape.gradient(loss_value, u_weights)
+            loss_value,mse_0, mse_f, grads, grads_col, grads_u = grad(u_model, x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights)
+
             tf_optimizer.apply_gradients(zip(grads, u_model.trainable_variables))
             tf_optimizer_coll.apply_gradients(zip([-grads_col], [col_weights]))
             tf_optimizer_u.apply_gradients(zip([-grads_u], [u_weights]))
-            del tape
+
 
         if epoch % 10 == 0:
             elapsed = time.time() - start_time
@@ -161,7 +153,7 @@ def fit(x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights, tf
             tf.print(f"mse_0: {mse_0}  mse_f: {mse_f}   total loss: {loss_value}")
             start_time = time.time()
 
-    print(col_weights)
+
     #l-bfgs-b optimization
     print("Starting L-BFGS training")
 
@@ -208,8 +200,8 @@ N0 = 100
 N_b = 25 #25 per upper and lower boundary, so 50 total
 N_f = 10000
 
-col_weights = tf.Variable(tf.random.uniform([N_f, 1]))
-u_weights = tf.Variable(100*tf.random.uniform([N0, 1]))
+col_weights = tf.Variable(tf.reshape(tf.repeat(100.0, N_f),(N_f, -1)))
+u_weights = tf.Variable(tf.random.uniform([N0, 1]))
 
 #load data, from Raissi et. al
 data = scipy.io.loadmat('burgers_shock.mat')
@@ -223,7 +215,7 @@ Exact_u = np.real(Exact)
 #grab random points off the initial condition
 idx_x = np.random.choice(x.shape[0], N0, replace=False)
 x0 = x[idx_x,:]
-u0 = Exact_u[idx_x,0:1]
+u0 = tf.cast(Exact_u[idx_x,0:1], dtype = tf.float32)
 
 idx_t = np.random.choice(t.shape[0], N_b, replace=False)
 tb = t[idx_t,:]
@@ -241,8 +233,8 @@ X_lb = np.concatenate((0*tb + lb[0], tb), 1) # (lb[0], tb)
 X_ub = np.concatenate((0*tb + ub[0], tb), 1) # (ub[0], tb)
 
 #seperate point vectors
-x0 = X0[:,0:1]
-t0 = X0[:,1:2]
+x0 = tf.cast(X0[:,0:1], dtype = tf.float32)
+t0 = tf.cast(X0[:,1:2], dtype = tf.float32)
 
 x_lb = tf.convert_to_tensor(X_lb[:,0:1], dtype=tf.float32)
 t_lb = tf.convert_to_tensor(X_lb[:,1:2], dtype=tf.float32)
@@ -251,7 +243,7 @@ x_ub = tf.convert_to_tensor(X_ub[:,0:1], dtype=tf.float32)
 t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
 
 # Begin training, modify 10000/10000 for varying levels of adam/L-BFGS respectively
-fit(x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights, tf_iter = 10000, newton_iter = 10000)
+fit(x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights, tf_iter = 100, newton_iter = 100)
 
 #generate mesh to find U0-pred for the whole domain
 X, T = np.meshgrid(x,t)
