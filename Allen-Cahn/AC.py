@@ -367,6 +367,8 @@ ax.set_xlim([-1.1,1.1])
 ax.set_ylim([-1.1,1.1])
 ax.set_title('$t = %.2f$' % (t[199]), fontsize = 10)
 
+fig, ax = plt.subplots()
+
 h = plt.imshow(U_pred.T, interpolation='nearest', cmap='rainbow',
             extent=[0.0, 1.0, -1.0, 1.0],
             origin='lower', aspect='auto')
@@ -395,3 +397,4 @@ cbar.set_label('$\overline{f}_u$ prediction')
 plt.show()
 
 plt.scatter(t_f, x_f, c = col_weights.numpy(), s = col_weights.numpy()/10)
+plt.show()
