@@ -98,8 +98,6 @@ def f_model(x,t):
 
     return f_u
 
-
-
 @tf.function
 def u_x_model(x,t):
     u = u_model(tf.concat([x,t],1))
