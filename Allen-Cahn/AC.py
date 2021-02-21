@@ -355,6 +355,8 @@ ax.set_title('$t = %.2f$' % (t[75]), fontsize = 10)
 #show u_pred across domain
 fig, ax = plt.subplots()
 
+fig, ax = plt.subplots()
+
 h = plt.imshow(U_pred.T, interpolation='nearest', cmap='rainbow',
             extent=[0.0, 1.0, -1.0, 1.0],
             origin='lower', aspect='auto')
