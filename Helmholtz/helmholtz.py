@@ -36,6 +36,17 @@ def set_weights(model, w, sizes_w, sizes_b):
             weights_biases = [weights, biases]
             layer.set_weights(weights_biases)
 
+def get_weights(model):
+    w = []
+    for layer in model.layers[0:]:
+        weights_biases = layer.get_weights()
+        weights = weights_biases[0].flatten()
+        biases = weights_biases[1]
+        w.extend(weights)
+        w.extend(biases)
+
+    w = tf.convert_to_tensor(w)
+    return w
 
 def neural_net(layer_sizes):
     model = Sequential()
