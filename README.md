@@ -4,6 +4,9 @@
 
 #### Levi McClenny<sup>1,2</sup>, Ulisses Braga-Neto<sup>1</sup>
 
+#### Update: The self-adaptive implementations of the Allen-Cahn, Burgers, and Helmholtz PDE systems, shown here, are available in our new package [*TensorDiffEq*](https://github.com/tensordiffeq/TensorDiffEq)
+##### Those examples in *TensorDiffEq* are available [here](https://github.com/tensordiffeq/TensorDiffEq/tree/main/examples)
+
 Paper: https://arxiv.org/pdf/2009.04544.pdf
 
 Abstract: _Physics-Informed Neural Networks (PINNs) have emerged recently as a promising application of deep neural networks to the numerical solution of nonlinear partial differential equations (PDEs).
