@@ -224,19 +224,6 @@ Exact = data['uu']
 Exact_u = np.real(Exact)
 
 
-# Plot high-fidelity solution
-fig, ax = plt.subplots()
-ec = plt.imshow(Exact_u, interpolation='nearest', cmap='rainbow',
-            extent=[0.0, 1.0, -1.0, 1.0],
-            origin='lower', aspect='auto')
-
-ax.autoscale_view()
-ax.set_xlabel('$t$')
-ax.set_ylabel('$x$')
-cbar = plt.colorbar(ec)
-cbar.set_label('$|u(x,t)|$')
-plt.title("Actual $|u(x,t)|$",fontdict = {'fontsize': 14})
-plt.show()
 
 #grab training points from domain
 idx_x = np.random.choice(x.shape[0], N0, replace=False)
@@ -318,10 +305,11 @@ divider = make_axes_locatable(ax)
 cax = divider.append_axes("right", size="5%", pad=0.05)
 fig.colorbar(h, cax=cax)
 
+
 line = np.linspace(x.min(), x.max(), 2)[:,None]
+ax.plot(t[25]*np.ones((2,1)), line, 'k--', linewidth = 1)
 ax.plot(t[50]*np.ones((2,1)), line, 'k--', linewidth = 1)
-ax.plot(t[100]*np.ones((2,1)), line, 'k--', linewidth = 1)
-ax.plot(t[200]*np.ones((2,1)), line, 'k--', linewidth = 1)
+ax.plot(t[75]*np.ones((2,1)), line, 'k--', linewidth = 1)
 
 ax.set_xlabel('$t$')
 ax.set_ylabel('$x$')
@@ -334,35 +322,38 @@ gs1 = gridspec.GridSpec(1, 3)
 gs1.update(top=1-1/3, bottom=0, left=0.1, right=0.9, wspace=0.5)
 
 ax = plt.subplot(gs1[0, 0])
-ax.plot(x,Exact_u[:,50], 'b-', linewidth = 2, label = 'Exact')
-ax.plot(x,U_pred[50,:], 'r--', linewidth = 2, label = 'Prediction')
+ax.plot(x,Exact_u[:,25], 'b-', linewidth = 2, label = 'Exact')
+ax.plot(x,U_pred[25,:], 'r--', linewidth = 2, label = 'Prediction')
 ax.set_xlabel('$x$')
 ax.set_ylabel('$u(t,x)$')
-ax.set_title('$t = %.2f$' % (t[50]), fontsize = 10)
+ax.set_title('$t = %.2f$' % (t[25]), fontsize = 10)
 ax.axis('square')
 ax.set_xlim([-1.1,1.1])
 ax.set_ylim([-1.1,1.1])
 
 ax = plt.subplot(gs1[0, 1])
-ax.plot(x,Exact_u[:,100], 'b-', linewidth = 2, label = 'Exact')
-ax.plot(x,U_pred[100,:], 'r--', linewidth = 2, label = 'Prediction')
+ax.plot(x,Exact_u[:,50], 'b-', linewidth = 2, label = 'Exact')
+ax.plot(x,U_pred[50,:], 'r--', linewidth = 2, label = 'Prediction')
 ax.set_xlabel('$x$')
 ax.set_ylabel('$u(t,x)$')
 ax.axis('square')
 ax.set_xlim([-1.1,1.1])
 ax.set_ylim([-1.1,1.1])
-ax.set_title('$t = %.2f$' % (t[100]), fontsize = 10)
+ax.set_title('$t = %.2f$' % (t[50]), fontsize = 10)
 ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.3), ncol=5, frameon=False)
 
 ax = plt.subplot(gs1[0, 2])
-ax.plot(x,Exact_u[:,199], 'b-', linewidth = 2, label = 'Exact')
-ax.plot(x,U_pred[199,:], 'r--', linewidth = 2, label = 'Prediction')
+ax.plot(x,Exact_u[:,75], 'b-', linewidth = 2, label = 'Exact')
+ax.plot(x,U_pred[75,:], 'r--', linewidth = 2, label = 'Prediction')
 ax.set_xlabel('$x$')
 ax.set_ylabel('$u(t,x)$')
 ax.axis('square')
 ax.set_xlim([-1.1,1.1])
 ax.set_ylim([-1.1,1.1])
-ax.set_title('$t = %.2f$' % (t[199]), fontsize = 10)
+ax.set_title('$t = %.2f$' % (t[75]), fontsize = 10)
+
+#show u_pred across domain
+fig, ax = plt.subplots()
 
 fig, ax = plt.subplots()
 
@@ -372,8 +363,6 @@ h = plt.imshow(U_pred.T, interpolation='nearest', cmap='rainbow',
 divider = make_axes_locatable(ax)
 cax = divider.append_axes("right", size="5%", pad=0.05)
 fig.colorbar(h, cax=cax)
-
-plt.plot(t_f, x_f, 'ko', label = 'Data (%d points)' % (u0.shape[0]), markersize = 1, clip_on = False)
 
 plt.legend(frameon=False, loc = 'best')
 
