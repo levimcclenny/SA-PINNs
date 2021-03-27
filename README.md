@@ -1,6 +1,6 @@
 # Self-Adaptive PINN - Official Implementation
 
-## Self-Adaptive Physics-Informed Neural Networks using a Soft Attention Mechanism
+## Self-Adaptive Physics-Informed Neural Networks using a Soft Attention Mechanism [AAAI-MLPS 2021]
 
 ### Levi McClenny<sup>1,2</sup>, Ulisses Braga-Neto<sup>1</sup>
 
