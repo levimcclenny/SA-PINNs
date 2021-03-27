@@ -1,10 +1,10 @@
-## Self-Adaptive PINN - Official Implementation
+# Self-Adaptive PINN - Official Implementation
 
-### Self-Adaptive Physics-Informed Neural Networks using a Soft Attention Mechanism
+## Self-Adaptive Physics-Informed Neural Networks using a Soft Attention Mechanism
+
+### Levi McClenny<sup>1,2</sup>, Ulisses Braga-Neto<sup>1</sup>
 
 ### Accepted to [AAAI-MLPS 2021](https://sites.google.com/view/aaai-mlps/proceedings?authuser=0) 
-
-#### Levi McClenny<sup>1,2</sup>, Ulisses Braga-Neto<sup>1</sup>
 
 ### Update: The self-adaptive implementations of the Allen-Cahn, Burgers, and Helmholtz PDE systems, shown here, are available in our new package [*TensorDiffEq*](https://github.com/tensordiffeq/TensorDiffEq)
 #### Those examples in *TensorDiffEq* are available [here](https://github.com/tensordiffeq/TensorDiffEq/tree/main/examples)
