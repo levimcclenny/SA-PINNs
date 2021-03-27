@@ -2,6 +2,8 @@
 
 ### Self-Adaptive Physics-Informed Neural Networks using a Soft Attention Mechanism
 
+### Accepted to [AAAI-MLPS 2021](https://sites.google.com/view/aaai-mlps/proceedings?authuser=0) 
+
 #### Levi McClenny<sup>1,2</sup>, Ulisses Braga-Neto<sup>1</sup>
 
 ### Update: The self-adaptive implementations of the Allen-Cahn, Burgers, and Helmholtz PDE systems, shown here, are available in our new package [*TensorDiffEq*](https://github.com/tensordiffeq/TensorDiffEq)
