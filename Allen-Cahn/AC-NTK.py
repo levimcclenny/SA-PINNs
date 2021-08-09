@@ -71,70 +71,48 @@ for i in range(1):
                 kernel_initializer="glorot_normal"))
         return model
 
-    # AC Loss Model Below
-    #
-    # #define the loss
-    # def loss(x_f_batch, t_f_batch,
-    #              x0, t0, u0, x_lb,
-    #              t_lb, x_ub, t_ub, col_weight, u_weight, b_weight, bx_weight):
-    #
-    #     f_u_pred = f_model(x_f_batch, t_f_batch)
-    #     u0_pred = u_model(tf.concat([x0, t0],1))
-    #
-    #     u_lb_pred, u_x_lb_pred, = u_x_model(x_lb, t_lb)
-    #     u_ub_pred, u_x_ub_pred, = u_x_model(x_ub, t_ub)
-    #
-    #     mse_0_u = (u_weight/(2*N0))*tf.reduce_mean(tf.square((u0 - u0_pred)))
-    #
-    #     mse_b_u_weights = (b_weight/(2*N_b))*tf.reduce_mean(tf.square(tf.math.subtract(u_lb_pred,u_ub_pred))) + \
-    #                       (bx_weight/(2*N_b))*tf.reduce_mean(tf.square(tf.math.subtract(u_x_lb_pred, u_x_ub_pred)))
-    #
-    #     mse_b_u = tf.reduce_mean(tf.square(tf.math.subtract(u_lb_pred,u_ub_pred))) + \
-    #             tf.reduce_mean(tf.square(tf.math.subtract(u_x_lb_pred, u_x_ub_pred)))
-    #
-    #     mse_f_u = (col_weight/(2*N_f))*tf.reduce_mean(tf.square(f_u_pred))
-    #
-    #     return  mse_0_u + mse_b_u_weights + mse_f_u , tf.reduce_mean(tf.square((u0 - u0_pred))), mse_b_u, tf.reduce_mean(tf.square(f_u_pred))
 
+
+    #define the loss
     def loss(x_f_batch, t_f_batch,
                  x0, t0, u0, x_lb,
-                 t_lb, x_ub, t_ub, col_weight, u_weight, b_weight):
+                 t_lb, x_ub, t_ub, col_weight, u_weight, b_weight, bx_weight):
 
         f_u_pred = f_model(x_f_batch, t_f_batch)
+        u0_pred = u_model(tf.concat([x0, t0],1))
 
-        u0_pred, u0_t_pred = u_t_model(x0, t0)
+        u_lb_pred, u_x_lb_pred, = u_x_model(x_lb, t_lb)
+        u_ub_pred, u_x_ub_pred, = u_x_model(x_ub, t_ub)
 
-        u_lb_pred, _ = u_t_model(x_lb, t_lb)
-        u_ub_pred, _ = u_t_model(x_ub, t_ub)
+        mse_0_u = (u_weight/(2*N0))*tf.reduce_mean(tf.square((u0 - u0_pred)))
 
-        mse_b_u = (b_weight/(2*N_b))*(tf.reduce_mean(tf.square(u_lb_pred - 0)) + tf.reduce_mean(tf.square(u_ub_pred - 0)))
+        mse_b_u_weights = (b_weight/(2*N_b))*tf.reduce_mean(tf.square(tf.math.subtract(u_lb_pred,u_ub_pred))) + \
+                          (bx_weight/(2*N_b))*tf.reduce_mean(tf.square(tf.math.subtract(u_x_lb_pred, u_x_ub_pred)))
 
-        mse_0_u = (u_weight/(2*N0))*(tf.reduce_mean(tf.square((u0 - u0_pred))) + tf.reduce_mean(tf.square((u0_t_pred - 0.0))))
+        mse_b_u = tf.reduce_mean(tf.square(tf.math.subtract(u_lb_pred,u_ub_pred))) + \
+                tf.reduce_mean(tf.square(tf.math.subtract(u_x_lb_pred, u_x_ub_pred)))
 
         mse_f_u = (col_weight/(2*N_f))*tf.reduce_mean(tf.square(f_u_pred))
 
-        return mse_0_u + mse_b_u + mse_f_u, mse_0_u, mse_b_u, mse_f_u
+        return  mse_0_u + mse_b_u_weights + mse_f_u , tf.reduce_mean(tf.square((u0 - u0_pred))), mse_b_u, tf.reduce_mean(tf.square(f_u_pred))
 
     def loss_weights(x_f_batch, t_f_batch,
                  x0, t0, u0, x_lb,
                  t_lb, x_ub, t_ub):
 
         f_u_pred = f_model(x_f_batch, t_f_batch)
+        u0_pred = u_model(tf.concat([x0, t0],1))
 
-        u0_pred, u0_t_pred = u_t_model(x0, t0)
+        u_lb_pred, u_x_lb_pred, = u_x_model(x_lb, t_lb)
+        u_ub_pred, u_x_ub_pred, = u_x_model(x_ub, t_ub)
 
-        u_lb_pred, _ = u_t_model(x_lb, t_lb)
-        u_ub_pred, _ = u_t_model(x_ub, t_ub)
+        mse_0_u = tf.reduce_mean(tf.square((u0 - u0_pred)))
 
-        mse_b_u = tf.reduce_mean(tf.square(u_lb_pred - 0)) + \
-                  tf.reduce_mean(tf.square(u_ub_pred - 0))  # since ub/lb is 0
-
-        mse_0_u = tf.reduce_mean(tf.square((u0 - u0_pred))) + \
-                  tf.reduce_mean(tf.square((u0_t_pred - 0.0)))
+        mse_b_u = tf.reduce_mean(tf.square(tf.math.subtract(u_lb_pred,u_ub_pred)))
+        mse_bx_u = tf.reduce_mean(tf.square(tf.math.subtract(u_x_lb_pred, u_x_ub_pred)))
 
         mse_f_u = tf.reduce_mean(tf.square(f_u_pred))
-
-        return mse_0_u, mse_b_u, mse_f_u
+        return  mse_0_u, mse_b_u, mse_bx_u, mse_f_u
 
     #define the physics-based residual, we want this to be 0
 
@@ -143,23 +121,24 @@ for i in range(1):
     @tf.function
     def f_model(x,t):
         u = u_model(tf.concat([x, t],1))
-        u_x = tf.gradients(u, x)[0]
-        u_xx = tf.gradients(u_x, x)[0]
-        u_t = tf.gradients(u,t)[0]
-        u_tt = tf.gradients(u_t,t)[0]
-        f_u = u_tt - 4*u_xx
+        u_x = tf.gradients(u, x)
+        u_xx = tf.gradients(u_x, x)
+        u_t = tf.gradients(u,t)
+        c1 = tf.constant(.0001, dtype = tf.float32)
+        c2 = tf.constant(5.0, dtype = tf.float32)
+        f_u = u_t - c1*u_xx + c2*u*u*u - c2*u
         return f_u
 
     @tf.function
-    def u_t_model(x, t):
+    def u_x_model(x, t):
         u = u_model(tf.concat([x, t],1))
-        u_t = tf.gradients(u, t)[0]
-        return u, u_t
+        u_x = tf.gradients(u, x)
+        return u, u_x
 
     @tf.function
-    def grad(model, x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub, col_weight, u_weight, b_weight):
+    def grad(model, x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub, col_weight, u_weight, b_weight, bx_weight):
         with tf.GradientTape(persistent=True) as tape:
-            loss_value, mse_0, mse_b, mse_f = loss(x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub, col_weight, u_weight, b_weight)
+            loss_value, mse_0, mse_b, mse_f = loss(x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub, col_weight, u_weight, b_weight, bx_weight)
             grads = tape.gradient(loss_value, u_model.trainable_variables)
             del tape
         return loss_value, mse_0, mse_b, mse_f, grads
@@ -168,11 +147,12 @@ for i in range(1):
     def grad_weights(model, x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub):
         with tf.GradientTape(persistent=True) as tape:
             tape.watch(u_model.trainable_variables)
-            mse_0, mse_b, mse_f = loss_weights(x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub)
-        gradients_u = tape.gradient(mse_0, u_model.trainable_variables)
-        gradients_f = tape.gradient(mse_f, u_model.trainable_variables)
-        gradients_b = tape.gradient(mse_b, u_model.trainable_variables)
-        return gradients_u, gradients_f, gradients_b
+            mse_0, mse_b, mse_bx, mse_f = loss_weights(x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub)
+        gradients_u = tape.jacobian(mse_0, u_model.trainable_variables)
+        gradients_f = tape.jacobian(mse_f, u_model.trainable_variables)
+        gradients_b = tape.jacobian(mse_b, u_model.trainable_variables)
+        gradients_bx = tape.jacobian(mse_bx, u_model.trainable_variables)
+        return gradients_u, gradients_f, gradients_b, gradients_bx
 
 
     def fit(x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, tf_iter, newton_iter):
@@ -205,23 +185,26 @@ for i in range(1):
                 t_f_batch = t_f[i*batch_sz:(i*batch_sz + batch_sz),]
 
                 if (epoch+1) % 100 == 0:
-                    grads_u, grads_f, grads_b = grad_weights(u_model, x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb,
+                    grads_u, grads_f, grads_b, grads_bx = grad_weights(u_model, x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb,
                                                      t_lb, x_ub, t_ub)
-                    if (epoch + 1) % 1000 == 0:
-                        sum_u = np.sum([np.sum(l.numpy()**2) for l in grads_u])
-                        print("sum_u", sum_u)
-                        sum_b = np.sum([np.sum(l.numpy()**2) for l in grads_b])
-                        print("sum_b", sum_b)
-                        sum_f = np.sum([np.sum(l.numpy()**2) for l in grads_f[:-1]])
-                        print("sum_f", sum_f)
-                        sum = sum_u + sum_b + sum_f
-                        print("sum", sum)
-                        b_weight = sum/sum_b
-                        print("b_weight", b_weight)
-                        u_weight = sum/sum_u
-                        col_weight = sum/sum_f
+                    # print(grads_f)
+                    sum_u = np.sum([np.sum(l.numpy()**2) for l in grads_u])
+                    print("sum_u")
+                    sum_b = np.sum([np.sum(l.numpy()**2) for l in grads_b])
+                    print("sum_b", sum_b)
+                    sum_bx = np.sum([np.sum(l.numpy()**2) for l in grads_bx])
+                    print("sum_bx", sum_bx)
+                    sum_f = np.sum([np.sum(l.numpy()**2) for l in grads_f])
+                    print("sum_f", sum_f)
+                    sum = sum_u + sum_b + sum_bx + sum_f
+                    print("sum", sum)
+                    b_weight = sum/sum_b
+                    print("b_weight", b_weight)
+                    bx_weight = sum/sum_bx
+                    u_weight = sum/sum_u
+                    col_weight = sum/sum_f
 
-                loss_value, mse_0, mse_b, mse_f, grads = grad(u_model, x_f_batch, t_f_batch, x0_batch, t0_batch,  u0_batch, x_lb, t_lb, x_ub, t_ub, col_weight, u_weight, b_weight)
+                loss_value, mse_0, mse_b, mse_f, grads = grad(u_model, x_f_batch, t_f_batch, x0_batch, t0_batch,  u0_batch, x_lb, t_lb, x_ub, t_ub, col_weight, u_weight, b_weight, bx_weight)
 
                 tf_optimizer.apply_gradients(zip(grads, u_model.trainable_variables))
 
@@ -237,65 +220,69 @@ for i in range(1):
                 start_time = time.time()
 
         # An "interface" to matplotlib.axes.Axes.hist() method
-        # # plt.hist(x=np.concatenate([g.numpy().flatten() for g in grads_col]), bins=50, alpha=0.5, label = "Residual Gradients")
-        # print(g_u[2])
-        # sns.histplot(x=g_f[2].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "Residual Gradients", element = "poly", color = "green", log_scale = True)
-        # sns.histplot(x=g_u[2].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "IC Gradients", element = "poly", color = "blue", log_scale = True)
-        # plt.xlabel('Gradient Magnitude')
-        # plt.ylabel('Frequency')
-        # plt.title('FC1 Gradient Magnitudes, Baseline PINN, 2000 Adam Iterations')
-        # plt.legend(loc='upper right')
-        # plt.show()
-        #
-        # sns.histplot(x=g_f[4].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "Residual Gradients", element = "poly", color = "green", log_scale = True)
-        # sns.histplot(x=g_u[4].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "IC Gradients", element = "poly", color = "blue", log_scale = True)
-        # plt.xlabel('Gradient Magnitude')
-        # plt.ylabel('Frequency')
-        # plt.title('FC2 Gradient Magnitudes, Baseline PINN, 2000 Adam Iterations')
-        # plt.legend(loc='upper right')
-        # plt.show()
-        #
-        # sns.histplot(x=g_f[6].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "Residual Gradients", element = "poly", color = "green", log_scale = True)
-        # sns.histplot(x=g_u[6].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "IC Gradients", element = "poly", color = "blue", log_scale = True)
-        # plt.xlabel('Gradient Magnitude')
-        # plt.ylabel('Frequency')
-        # plt.title('FC3 Gradient Magnitudes, Baseline PINN, 2000 Adam Iterations')
-        # plt.legend(loc='upper right')
-        # plt.show()
-        #
-        # sns.histplot(x=g_f[8].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "Residual Gradients", element = "poly", color = "green", log_scale = True)
-        # sns.histplot(x=g_u[8].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "IC Gradients", element = "poly", color = "blue", log_scale = True)
-        # plt.xlabel('Gradient Magnitude')
-        # plt.ylabel('Frequency')
-        # plt.title('FC4 Gradient Magnitudes, Baseline PINN, 2000 Adam Iterations')
-        # plt.legend(loc='upper right')
-        # plt.show()
-        #
-        # plt.hist(x=g_f[4]/sum(g_f[4]), bins=50, alpha=0.5, label = "FC3 Gradients")
-        # plt.hist(x=g_f[6], bins=50, alpha=0.5, label = "FC4 Gradients")
-        # # plt.title("Gradient flow in Allen-Cahn")
-        # # plt.legend(loc='upper right')
-        # # plt.show()
-        # plt.hist(grads_u[0], bins=50, alpha = 0.5, label = "IC Gradients")
-        # plt.grid(axis='y', alpha=0.75)
-        # plt.xlabel('Magnitude')
-        # plt.ylabel('Frequency')
-        # plt.title('Gradient magnitudes')
-        # # Set a clean upper y-axis limit.
-        # # plt.xlim(xmin =-1, xmax=1)
-        # # plt.ylim(ymax = )
+        # plt.hist(x=np.concatenate([g.numpy().flatten() for g in grads_col]), bins=50, alpha=0.5, label = "Residual Gradients")
+        print(grads_u[2])
+        sns.histplot(x=(col_weights*grads_f)[2].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "Residual Gradients", element = "poly", color = "green", log_scale = True)
+        sns.histplot(x=grads_b[2].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "BC Gradients", element = "poly", color = "red", log_scale = True)
+        sns.histplot(x=(u_weight*grads_u)[2].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "IC Gradients", element = "poly", color = "blue", log_scale = True)
+        plt.xlabel('Gradient Magnitude')
+        plt.ylabel('Frequency')
+        plt.title('FC1 Gradient Magnitudes, Baseline PINN, 2000 Adam Iterations')
+        plt.legend(loc='upper right')
+        plt.show()
+
+        sns.histplot(x=grads_f[4].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "Residual Gradients", element = "poly", color = "green", log_scale = True)
+        sns.histplot(x=grads_b[4].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "BC Gradients", element = "poly", color = "red", log_scale = True)
+        sns.histplot(x=grads_u[4].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "IC Gradients", element = "poly", color = "blue", log_scale = True)
+        plt.xlabel('Gradient Magnitude')
+        plt.ylabel('Frequency')
+        plt.title('FC2 Gradient Magnitudes, Baseline PINN, 2000 Adam Iterations')
+        plt.legend(loc='upper right')
+        plt.show()
+
+        sns.histplot(x=grads_f[6].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "Residual Gradients", element = "poly", color = "green", log_scale = True)
+        sns.histplot(x=grads_b[6].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "BC Gradients", element = "poly", color = "red", log_scale = True)
+        sns.histplot(x=grads_u[6].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "IC Gradients", element = "poly", color = "blue", log_scale = True)
+        plt.xlabel('Gradient Magnitude')
+        plt.ylabel('Frequency')
+        plt.title('FC3 Gradient Magnitudes, Baseline PINN, 2000 Adam Iterations')
+        plt.legend(loc='upper right')
+        plt.show()
+
+        sns.histplot(x=grads_f[8].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "Residual Gradients", element = "poly", color = "green", log_scale = True)
+        sns.histplot(x=grads_b[8].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "BC Gradients", element = "poly", color = "red", log_scale = True)
+        sns.histplot(x=grads_u[8].numpy().flatten(), bins=70, alpha=0.5, stat = "density", label = "IC Gradients", element = "poly", color = "blue", log_scale = True)
+        plt.xlabel('Gradient Magnitude')
+        plt.ylabel('Frequency')
+        plt.title('FC4 Gradient Magnitudes, Baseline PINN, 2000 Adam Iterations')
+        plt.legend(loc='upper right')
+        plt.show()
+
+        plt.hist(x=grads_f[4]/sum(grads_f[4]), bins=50, alpha=0.5, label = "FC3 Gradients")
+        plt.hist(x=grads_f[6], bins=50, alpha=0.5, label = "FC4 Gradients")
         # plt.title("Gradient flow in Allen-Cahn")
         # plt.legend(loc='upper right')
         # plt.show()
+        plt.hist(grads_u[0], bins=50, alpha = 0.5, label = "IC Gradients")
+        plt.grid(axis='y', alpha=0.75)
+        plt.xlabel('Magnitude')
+        plt.ylabel('Frequency')
+        plt.title('Gradient magnitudes')
+        # Set a clean upper y-axis limit.
+        # plt.xlim(xmin =-1, xmax=1)
+        # plt.ylim(ymax = )
+        plt.title("Gradient flow in Allen-Cahn")
+        plt.legend(loc='upper right')
+        plt.show()
 
         #l-bfgs-b optimization
         print("Starting L-BFGS training")
 
-        # loss_and_flat_grad = get_loss_and_flat_grad(x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub, col_weight, u_weight, b_weight, bx_weight)
-        #
-        # lbfgs(loss_and_flat_grad,
-        #   get_weights(u_model),
-        #   Struct(), maxIter=newton_iter, learningRate=0.8)
+        loss_and_flat_grad = get_loss_and_flat_grad(x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub, col_weight, u_weight, b_weight, bx_weight)
+
+        lbfgs(loss_and_flat_grad,
+          get_weights(u_model),
+          Struct(), maxIter=newton_iter, learningRate=0.8)
 
 
     #L-BFGS implementation from https://github.com/pierremtb/PINNs-TF2.0
@@ -317,7 +304,7 @@ for i in range(1):
 
     def predict(X_star):
         X_star = tf.convert_to_tensor(X_star, dtype=tf.float32)
-        u_star, _ = u_t_model(X_star[:,0:1],
+        u_star, _ = u_x_model(X_star[:,0:1],
                          X_star[:,1:2])
 
         f_u_star = f_model(X_star[:,0:1],
@@ -392,6 +379,8 @@ for i in range(1):
     fit(x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, tf_iter = 20000, newton_iter = 1)
     col_weights_vec.append(col_weights_iter)
     u_weights_vec.append(u_weights_iter)
+    print(col_weights_vec)
+    print(u_weights_vec)
 
 # filename = 'plot-col-weights.txt'
 # # w tells python we are opening the file to write into it
@@ -405,20 +394,18 @@ for i in range(1):
 # outfile.write(str(u_weights_vec))
 # outfile.close()  # Close the file when we’re done!
 
-# ax = sns.lineplot(data=np.mean(np.array(col_weights_vec), axis=0), color = "blue", label="Collocation Weight Average")
-# sns.lineplot(data=(np.mean(np.array(col_weights_vec), axis = 0)+np.std(np.array(col_weights_vec), axis=0)),color = "blue", linestyle = "--")
-# sns.lineplot(data=np.mean(np.array(col_weights_vec), axis = 0)-np.std(np.array(col_weights_vec), axis=0),color = "blue", linestyle = "--")
-# sns.lineplot(data=np.mean(np.array(u_weights_vec), axis =0), label="Initial Weight Average", color = "green")
-# sns.lineplot(data=np.mean(np.array(u_weights_vec)+np.std(np.array(u_weights_vec), axis=0), axis =0), color = "green", linestyle ="--")
-# sns.lineplot(data=np.mean(np.array(u_weights_vec)-np.std(np.array(u_weights_vec), axis=0), axis =0), color = "green", linestyle ="--", )
-# ax.set(xlabel="Training Iteration x100", ylabel="Weight Magnitude")
-# plt.show()
+ax = sns.lineplot(data=np.mean(np.array(col_weights_vec), axis=0), color = "blue", label="Collocation Weight Average")
+sns.lineplot(data=(np.mean(np.array(col_weights_vec), axis = 0)+np.std(np.array(col_weights_vec), axis=0)),color = "blue", linestyle = "--")
+sns.lineplot(data=np.mean(np.array(col_weights_vec), axis = 0)-np.std(np.array(col_weights_vec), axis=0),color = "blue", linestyle = "--")
+sns.lineplot(data=np.mean(np.array(u_weights_vec), axis =0), label="Initial Weight Average", color = "green")
+sns.lineplot(data=np.mean(np.array(u_weights_vec)+np.std(np.array(u_weights_vec), axis=0), axis =0), color = "green", linestyle ="--")
+sns.lineplot(data=np.mean(np.array(u_weights_vec)-np.std(np.array(u_weights_vec), axis=0), axis =0), color = "green", linestyle ="--", )
+ax.set(xlabel="Training Iteration x100", ylabel="Weight Magnitude")
+plt.show()
 
 #generate meshgrid for forward pass of u_pred
 
 X, T = np.meshgrid(x,t)
-
-
 
 X_star = np.hstack((X.flatten()[:,None], T.flatten()[:,None]))
 u_star = Exact_u.T.flatten()[:,None]
@@ -525,7 +512,7 @@ plt.legend(frameon=False, loc = 'best')
 plt.show()
 
 fig, ax = plt.subplots()
-192
+
 ec = plt.imshow(FU_pred.T, interpolation='nearest', cmap='rainbow',
             extent=[0.0, math.pi/2, -5.0, 5.0],
             origin='lower', aspect='auto')

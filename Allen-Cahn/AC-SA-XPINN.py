@@ -87,7 +87,14 @@ def loss(x_f_batch_1, t_f_batch_1,
          x_ub_2, t_ub_2,
          x_ub_3, t_ub_3,
          x_ub_4, t_ub_4,
-         col_weights, u_weights):
+         col_weights_1,
+         col_weights_2,
+         col_weights_3,
+         col_weights_4,
+         int_weights_1,
+         int_weights_2,
+         int_weights_3,
+         u_weights):
 
     f_u_pred_1 = f_model(u_model_1, x_f_batch_1, t_f_batch_1)
     f_u_pred_2 = f_model(u_model_2, x_f_batch_2, t_f_batch_2)
@@ -108,10 +115,10 @@ def loss(x_f_batch_1, t_f_batch_1,
                 tf.reduce_mean(tf.square(f_u_int_3_1)) + \
                 tf.reduce_mean(tf.square(f_u_int_3_2))
 
-    mse_f_u = tf.reduce_mean(tf.square(f_u_pred_1)) + \
-              tf.reduce_mean(tf.square(f_u_pred_2)) + \
-              tf.reduce_mean(tf.square(f_u_pred_3)) + \
-              tf.reduce_mean(tf.square(f_u_pred_4))
+    mse_f_u = tf.reduce_mean(tf.square(col_weights_1*f_u_pred_1)) + \
+              tf.reduce_mean(tf.square(col_weights_2*f_u_pred_2)) + \
+              tf.reduce_mean(tf.square(col_weights_3*f_u_pred_3)) + \
+              tf.reduce_mean(tf.square(col_weights_4*f_u_pred_4))
 
     u0_pred = u_model_1(tf.concat([x0, t0], 1))
 
@@ -143,12 +150,19 @@ def loss(x_f_batch_1, t_f_batch_1,
     int_3_pred_low, u_x_int_3_pred_low = u_x_model(u_model_3, x_f_int_3, t_f_int_3)
     int_3_pred_hi, u_x_int_3_pred_hi = u_x_model(u_model_4, x_f_int_3, t_f_int_3)
 
+    # mse_int = tf.reduce_mean(tf.square(int_weights_1*tf.math.subtract(int_1_pred_low, int_1_pred_hi))) + \
+    #           tf.reduce_mean(tf.square(int_weights_1*tf.math.subtract(u_x_int_1_pred_low, u_x_int_1_pred_hi))) + \
+    #           tf.reduce_mean(tf.square(int_weights_2*tf.math.subtract(int_2_pred_low, int_2_pred_hi))) + \
+    #           tf.reduce_mean(tf.square(int_weights_2*tf.math.subtract(u_x_int_2_pred_low, u_x_int_2_pred_hi))) + \
+    #           tf.reduce_mean(tf.square(int_weights_3*tf.math.subtract(int_3_pred_low, int_3_pred_hi))) + \
+    #           tf.reduce_mean(tf.square(int_weights_3*tf.math.subtract(u_x_int_3_pred_low, u_x_int_3_pred_hi)))
+
     mse_int = tf.reduce_mean(tf.square(tf.math.subtract(int_1_pred_low, int_1_pred_hi))) + \
-              tf.reduce_mean(tf.square(tf.math.subtract(u_x_int_1_pred_low, u_x_int_1_pred_hi))) + \
               tf.reduce_mean(tf.square(tf.math.subtract(int_2_pred_low, int_2_pred_hi))) + \
-              tf.reduce_mean(tf.square(tf.math.subtract(u_x_int_2_pred_low, u_x_int_2_pred_hi))) + \
-              tf.reduce_mean(tf.square(tf.math.subtract(int_3_pred_low, int_3_pred_hi))) + \
-              tf.reduce_mean(tf.square(tf.math.subtract(u_x_int_3_pred_low, u_x_int_3_pred_hi)))
+              tf.reduce_mean(tf.square(tf.math.subtract(int_3_pred_low, int_3_pred_hi))) # + \
+              # tf.reduce_mean(tf.square(tf.math.subtract(u_x_int_2_pred_low, u_x_int_2_pred_hi))) + \
+              # tf.reduce_mean(tf.square(tf.math.subtract(u_x_int_1_pred_low, u_x_int_1_pred_hi))) + \
+              # tf.reduce_mean(tf.square(tf.math.subtract(u_x_int_3_pred_low, u_x_int_3_pred_hi)))
 
     return 100*mse_0_u + mse_b_u + mse_f_u + 20*mse_int + mse_f_int, tf.reduce_mean(tf.square((u0 - u0_pred))), mse_b_u, mse_int
 
@@ -190,7 +204,15 @@ def grad(x_f_batch_1, t_f_batch_1,
          x_ub_1, t_ub_1,
          x_ub_2, t_ub_2,
          x_ub_3, t_ub_3,
-         x_ub_4, t_ub_4, col_weights, u_weights):
+         x_ub_4, t_ub_4,
+         col_weights_1,
+         col_weights_2,
+         col_weights_3,
+         col_weights_4,
+         int_weights_1,
+         int_weights_2,
+         int_weights_3,
+         u_weights):
     with tf.GradientTape(persistent=True) as tape:
         # tape.watch(col_weights)
         # tape.watch(u_weights)
@@ -210,18 +232,34 @@ def grad(x_f_batch_1, t_f_batch_1,
                                                x_ub_2, t_ub_2,
                                                x_ub_3, t_ub_3,
                                                x_ub_4, t_ub_4,
-                                               col_weights, u_weights)
+                                               col_weights_1,
+                                               col_weights_2,
+                                               col_weights_3,
+                                               col_weights_4,
+                                               int_weights_1,
+                                               int_weights_2,
+                                               int_weights_3,
+                                               u_weights)
         grads_1 = tape.gradient(loss_value, u_model_1.trainable_variables)
         grads_2 = tape.gradient(loss_value, u_model_2.trainable_variables)
         grads_3 = tape.gradient(loss_value, u_model_3.trainable_variables)
         grads_4 = tape.gradient(loss_value, u_model_4.trainable_variables)
         # print(grads)
-        grads_col = tape.gradient(loss_value, col_weights)
+        grads_col_1 = tape.gradient(loss_value, col_weights_1)
+        grads_col_2 = tape.gradient(loss_value, col_weights_2)
+        grads_col_3 = tape.gradient(loss_value, col_weights_3)
+        grads_col_4 = tape.gradient(loss_value, col_weights_4)
+
+        grads_int_1 = tape.gradient(loss_value, int_weights_1)
+        grads_int_2 = tape.gradient(loss_value, int_weights_2)
+        grads_int_3 = tape.gradient(loss_value, int_weights_3)
+
         grads_u = tape.gradient(loss_value, u_weights)
         gradients_u = tape.gradient(mse_0, u_model_1.trainable_variables)
         gradients_f = tape.gradient(mse_f, u_model_1.trainable_variables)
         del tape
-    return loss_value, mse_0, mse_b, mse_f, grads_1, grads_2, grads_3, grads_4, grads_col, grads_u, gradients_u, gradients_f
+    return loss_value, mse_0, mse_b, mse_f, grads_1, grads_2, grads_3, grads_4, grads_col_1, grads_col_2, grads_col_3, grads_col_4, \
+           grads_int_1, grads_int_2, grads_int_3, grads_u, gradients_u, gradients_f
 
 
 def fit(x_f, t_f,
@@ -236,10 +274,13 @@ def fit(x_f, t_f,
         x_ub_1, t_ub_1,
         x_ub_2, t_ub_2,
         x_ub_3, t_ub_3,
-        x_ub_4, t_ub_4, col_weights, u_weights, tf_iter, newton_iter):
+        x_ub_4, t_ub_4,
+        u_weights, tf_iter, newton_iter):
     # Can adjust batch size for collocation points, here we set it to N_f
     batch_sz = N_f
     n_batches = N_f // batch_sz
+
+    N_int = 100
 
     start_time = time.time()
     # create optimizer s for the network weights, collocation point mask, and initial boundary mask
@@ -252,23 +293,36 @@ def fit(x_f, t_f,
 
     print("starting Adam training")
 
+    x_f_batch_1 = tf.reshape(x_f[t_f < (1 / 4)], [-1, 1])
+    t_f_batch_1 = tf.reshape(t_f[t_f < (1 / 4)], [-1, 1])
+    x_f_batch_2 = tf.reshape(x_f[(t_f >= (1 / 4)) & (t_f <= (2 / 4))], [-1, 1])
+    t_f_batch_2 = tf.reshape(t_f[(t_f >= (1 / 4)) & (t_f <= (2 / 4))], [-1, 1])
+    x_f_batch_3 = tf.reshape(x_f[(t_f >= (2 / 4)) & (t_f <= (3 / 4))], [-1, 1])
+    t_f_batch_3 = tf.reshape(t_f[(t_f >= (2 / 4)) & (t_f <= (3 / 4))], [-1, 1])
+    x_f_batch_4 = tf.reshape(x_f[t_f > (3 / 4)], [-1, 1])
+    t_f_batch_4 = tf.reshape(t_f[t_f > (3 / 4)], [-1, 1])
+
+    col_weights_1 = tf.Variable(tf.random.uniform([len(x_f_batch_1), 1]))
+    col_weights_2 = tf.Variable(tf.random.uniform([len(x_f_batch_2), 1]))
+    col_weights_3 = tf.Variable(tf.random.uniform([len(x_f_batch_3), 1]))
+    col_weights_4 = tf.Variable(tf.random.uniform([len(x_f_batch_4), 1]))
+
+    int_weights_1 = tf.Variable(tf.random.uniform([N_int, 1]))
+    int_weights_2 = tf.Variable(tf.random.uniform([N_int, 1]))
+    int_weights_3 = tf.Variable(tf.random.uniform([N_int, 1]))
+
+
+    x0_batch = x0
+    t0_batch = t0
+    u0_batch = u0
+
     # For mini-batch (if used)
     for epoch in range(tf_iter):
         for i in range(n_batches):
-            x0_batch = x0
-            t0_batch = t0
-            u0_batch = u0
+
 
             # x_f_batch = x_f[i * batch_sz:(i * batch_sz + batch_sz), ]
             # t_f_batch = t_f[i * batch_sz:(i * batch_sz + batch_sz), ]
-            x_f_batch_1 = tf.reshape(x_f[t_f<(1/4)], [-1, 1])
-            t_f_batch_1 = tf.reshape(t_f[t_f<(1/4)], [-1, 1])
-            x_f_batch_2 = tf.reshape(x_f[(t_f >= (1 / 4)) & (t_f <= (2 / 4))], [-1, 1])
-            t_f_batch_2 = tf.reshape(t_f[(t_f >= (1 / 4)) & (t_f <= (2 / 4))], [-1, 1])
-            x_f_batch_3 = tf.reshape(x_f[(t_f >= (2 / 4)) & (t_f <= (3 / 4))], [-1, 1])
-            t_f_batch_3 = tf.reshape(t_f[(t_f >= (2 / 4)) & (t_f <= (3 / 4))], [-1, 1])
-            x_f_batch_4 = tf.reshape(x_f[t_f>(3/4)], [-1, 1])
-            t_f_batch_4 = tf.reshape(t_f[t_f>(3/4)], [-1, 1])
 
             # X_f = np.concatenate([x_f_batch, t_f_batch], axis=1)
             #
@@ -279,7 +333,7 @@ def fit(x_f, t_f,
             # x_f_middle = X_f[np.where(arr)[0]]
             # x_f_late = X_f[(X_f[:, 1] >= 2 / 3)]
 
-            loss_value, mse_0, mse_b, mse_f, grads_1, grads_2, grads_3, grads_4, grads_col, grads_u, g_u, g_f = grad(x_f_batch_1, t_f_batch_1,
+            loss_value, mse_0, mse_b, mse_f, grads_1, grads_2, grads_3, grads_4, grads_col_1, grads_col_2, grads_col_3, grads_col_4, grads_int_1, grads_int_2, grads_int_3, grads_u, g_u, g_f = grad(x_f_batch_1, t_f_batch_1,
                                                                                         x_f_batch_2, t_f_batch_2,
                                                                                         x_f_batch_3, t_f_batch_3,
                                                                                         x_f_batch_4, t_f_batch_4,
@@ -295,12 +349,21 @@ def fit(x_f, t_f,
                                                                                         x_ub_2, t_ub_2,
                                                                                         x_ub_3, t_ub_3,
                                                                                         x_ub_4, t_ub_4,
-                                                                                        col_weights, u_weights)
+                                                                                        col_weights_1,
+                                                                                        col_weights_2,
+                                                                                        col_weights_3,
+                                                                                        col_weights_4,
+                                                                                        int_weights_1,
+                                                                                        int_weights_2,
+                                                                                        int_weights_3,
+                                                                                        u_weights)
 
             tf_optimizer_1.apply_gradients(zip(grads_1, u_model_1.trainable_variables))
             tf_optimizer_2.apply_gradients(zip(grads_2, u_model_2.trainable_variables))
             tf_optimizer_3.apply_gradients(zip(grads_3, u_model_3.trainable_variables))
             tf_optimizer_4.apply_gradients(zip(grads_4, u_model_4.trainable_variables))
+            # tf_optimizer_weights.apply_gradients(zip([-grads_col_1, -grads_col_2, -grads_col_3, -grads_col_4], [col_weights_1, col_weights_2, col_weights_3, col_weights_4]))
+            # tf_optimizer_weights.apply_gradients(zip([-grads_int_1, -grads_int_2, -grads_int_3], [int_weights_1, int_weights_2, int_weights_3]))
             # tf_optimizer_weights.apply_gradients(zip([-grads_u], [u_weights]))
 
         if epoch % 100 == 0:
@@ -430,6 +493,9 @@ N0 = 512
 N_b = 100
 N_f = 20000
 
+
+
+int_weights_1 = tf.Variable(tf.random.uniform([N_f, 1]))
 col_weights = tf.Variable(tf.random.uniform([N_f, 1]))
 u_weights = tf.Variable(tf.random.uniform([N0, 1]))
 
@@ -521,7 +587,10 @@ fit(x_f, t_f,
         x_ub_1, t_ub_1,
         x_ub_2, t_ub_2,
         x_ub_3, t_ub_3,
-        x_ub_4, t_ub_4, col_weights, u_weights, tf_iter=100000, newton_iter=1)
+        x_ub_4, t_ub_4,
+        u_weights,
+        tf_iter=100000,
+        newton_iter=1)
 col_weights_vec.append(col_weights_iter)
 u_weights_vec.append(u_weights_iter)
 print(col_weights_vec)
